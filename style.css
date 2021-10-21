@@ -1,3 +1,64 @@
+h1 {
+  font-family: 'Times New Roman', Times, serif;
+  color: lightskyblue;
+  text-align: center;
+}
+
 h2 {
-  color: red;
+  font-family: 'Times New Roman', Times, serif;
+  color: pink;
+  text-align: center;
+}
+
+button {
+  font-family: 'Times New Roman', Times, serif;
+  color: lightslategray;
+}
+
+.toolTip {
+  position: absolute;
+  top: 150px;
+  right: 620px;
+  width: 200px;
+  height: 50px;
+
+  display: none;
+  min-width: 80px;
+  background: none repeat scroll 0 0 #c4daf3;
+  border: 1px solid #000000;
+  padding: 14px;
+  text-align: center;
+}
+
+.container {
+  text-align: center;
+}
+
+.modal-header {
+  justify-content: center;
+  text-align: center;
+  font-weight: bold;
+  color: lightslategray;
+  font-size: xx-large;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.toolTipState {
+  position: absolute;
+  top: 150px;
+  right: 620px;
+  width: 200px;
+  height: 50px; 
+  z-index:100000;
+  display: none;
+  min-width: 80px;
+  background: none repeat scroll 0 0 #c4daf3;
+  border: 1px solid #000000;
+  padding: 14px;
+  text-align: center;
+}
+
+.modal-body {
+  width: 600px;
+  height: 590px;
 }
