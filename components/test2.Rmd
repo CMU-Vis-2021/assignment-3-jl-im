@@ -1,0 +1,238 @@
+---
+title: "401 HW 7"
+author: "Iris Miao (imiao)"
+date: "Due Nov 13, 2021, (3:00PM ET) Extension"
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+    code_folding: show
+  pdf_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+1. 
+```{r}
+library(AmesHousing)
+ames = make_ames()
+#names(ames)
+X = ames[, -79]
+Y = ames[, 79]
+X = Filter(is.numeric, X)
+#dim(X)
+#names(X)
+str(X)
+Y = unlist(Y)
+X = as.matrix(X)
+
+n = nrow(X)
+I = sample(1:n, size=500, replace=FALSE)
+Xtest = X[I,]
+Ytest = Y[I]
+Xtrain = X[-I,]
+Ytrain = Y[-I]
+```
+
+a) 
+```{r}
+library(mgcv)
+Xtrain <- data.frame(Xtrain)
+Xtest <- data.frame(Xtest)
+
+reg = gam(Ytrain ~ s(Lot_Frontage) + s(Lot_Area) + s(Year_Built) + s(Year_Remod_Add) + s(Mas_Vnr_Area) + BsmtFin_SF_1 + s(BsmtFin_SF_2) + s(Bsmt_Unf_SF) + s(Total_Bsmt_SF) + s(First_Flr_SF), data=Xtrain)
+plot(reg)
+summary(reg)
+
+par(mfrow=c(2,3))
+plot(reg)
+```
+
+
+From the output of the additive model, it seems that `BsmtFin_SF_1` is not significant. All the other variables seem significant however as they have a p-value of <0.05. From the F values, `Year_Built`, `Mas_Vnr_Area`, and `Total_Bsmt_SF` seem the most important. 
+
+
+b)
+```{r}
+library(randomForest)
+reg.forest <- randomForest(Ytrain ~ Lot_Frontage + Lot_Area + Year_Built + Year_Remod_Add + Mas_Vnr_Area + BsmtFin_SF_1 + BsmtFin_SF_2 + Bsmt_Unf_SF + Total_Bsmt_SF + First_Flr_SF, importance=TRUE, data=Xtrain)
+print(reg.forest$importance)
+varImpPlot(reg.forest)
+```
+
+From the output of the random forest model, the most important variables are `Year_Built`, `First_Flr_SF`, and `Mas_Vnr_Area.` The least important variables are `BsmtFin_SF_1`, `BsmtFin_SF_2`, `Bsmt_Unf_SF`, and `Lot_Frontage.` The lower significance of `Lot_Frontage` and the Bsmt variables seem to agree with the additive model as well as the most important variables.
+
+c) 
+```{r}
+pred <- predict(reg, newdata = Xtest)
+mse <- mean((pred - Ytest)^2)
+print(mse)
+
+pred.forest <- predict(reg.forest, newdata = Xtest)
+mse.forest <- mean((pred.forest - Ytest)^2)
+print(mse.forest)
+```
+
+```{r}
+R1.a <- mean((Ytest - pred)^2)
+R1.b <- mean((Ytest - pred.forest)^2)
+square.a <- sqrt(var((Ytest - pred)^2))
+square.b <- sqrt(var(Ytest - pred.forest)^2)
+lower.a <- R1.a - 1.960*(square.a/sqrt(500))
+upper.a <- R1.a + 1.960*(square.a/sqrt(500))
+lower.b <- R1.b - 1.960*(square.b/sqrt(500))
+upper.b <- R1.b + 1.960*(square.b/sqrt(200))
+
+confidents = data.frame(upper.a, R1.a, lower.a, upper.b, R1.b, lower.b)
+print(confidents)
+```
+
+
+d) 
+```{r}
+reg.d <- randomForest(Ytrain ~ ., importance=TRUE, data=Xtrain)
+print(reg.d$importance)
+```
+
+
+```{r}
+pred.d <- predict(reg.d, newdata=Xtest)
+mse.d <- mean((pred.d - Ytest)^2)
+print(mse.d)
+print(mse.forest - mse.d)
+R1.d <- mean((Ytest - pred.d))^2
+square.d <- sqrt(var((Ytest - pred.d)^2))
+lower.d <- R1.d - 1.960*(square.d/sqrt(500))
+upper.d <- R1.d + 1.960*(square.d/sqrt(500))
+confidents <- data.frame(upper.d, R1.d, lower.d)
+print(confidents)
+```
+
+Yes, the model using all covariates predicts better than the model using only 10 covariates. 
+
+
+e)
+```{r}
+library(quantreg)
+y = log(Ytrain)
+x = log(Xtrain$Lot_Area)
+
+reg.e <- rqss(y ~ qss(x, lambda=1), tau=.1)
+reg.e2 <- rqss(y ~ qss(x, lambda=1), tau=.5)
+reg.e3 <- rqss(y ~ qss(x, lambda=1), tau=.9)
+
+plot(x, y)
+plot(reg.e, add=TRUE, col="pink", lwd=3)
+plot(reg.e2, add=TRUE, col="red", lwd=3)
+plot(reg.e3, add=TRUE, col="blue", lwd=3)
+```
+
+3.
+```{r}
+set.seed(401)
+library(ISLR)
+attach(Auto)
+names(Auto)
+str(Auto)
+auto.df <- data.frame(Auto)
+auto.df <- subset(auto.df, select=-c(name))
+auto.df$origin <- as.factor(auto.df$origin)
+auto.df$cylinders <- as.factor(auto.df$cylinders)
+mpg.med <- median(auto.df$mpg)
+auto.df$Y <- ifelse(auto.df$mpg >mpg.med, 1, 0)
+```
+
+
+a)
+```{r}
+pairs(Auto)
+```
+
+The features that seem most relevant for predicting Y are displacement, horsepower, and weight. 
+
+
+b)
+```{r}
+n = nrow(auto.df)
+I = sample(1:n, size=78, replace=FALSE)
+test <- auto.df[I,]
+train <- auto.df[-I,]
+```
+
+
+c)
+```{r}
+reg.log <- glm(Y ~., data = train)
+reg.for <- randomForest(Y ~., data = train)
+```
+
+d) 
+```{r}
+set.seed(401)
+alpha <- 0.5
+z <- -qnorm(alpha/2)
+B.lower <- (test$Y - predict(reg.log, test))^2
+mean(B.lower)
+
+R.lower <- 1/nrow(test)*sum(B.lower)
+sjsq.lower <- (1/nrow(test)) * sum((B.lower - R.lower)^2)
+lower.log <- R.lower - z*(sqrt(sjsq.lower)/sqrt(nrow(test)))
+higher.log <- R.lower + z*(sqrt(sjsq.lower)/sqrt(nrow(test)))
+print(cbind(lower.log, higher.log))
+
+B.rf <- (test$Y - predict(reg.for, test))^2
+mean(B.rf)
+
+R.rf <- 1/nrow(test) * sum(B.rf)
+sjsq.rf <- (1/nrow(test))*sum((B.rf - R.rf)^2)
+lower.rf <- R.rf - z*sqrt(sjsq.rf/sqrt(nrow(test)))
+upper.rf <- R.rf + z*sqrt(sjsq.rf/sqrt(nrow(test)))
+print(cbind(lower.rf, upper.rf))
+```
+
+The estimated prediction error for the logistic regression model is 0.05374009 and for the forest model is 0.00840675. The 95% CI for the prediction error for the logistic regression model is [0.04517135, 0.06230883] and for the forest model is [-1.955519e-05, 0.01683305]. Thus, we conclude that the forest model method works better.  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
